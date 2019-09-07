@@ -26,12 +26,24 @@ const Menu = () => {
 	)
 }
 
+const Anecdote = ({ anecdote }) => (
+	<div>
+		<h2>{anecdote.content}</h2>
+		<p>has {anecdote.votes} votes</p>
+		<p>
+			for more info, see <a href={anecdote.info}>{anecdote.info}</a>
+		</p>
+	</div>
+)
+
 const AnecdoteList = ({ anecdotes }) => (
 	<div>
 		<h2>Anecdotes</h2>
 		<ul>
 			{anecdotes.map(anecdote => (
-				<li key={anecdote.id}>{anecdote.content}</li>
+				<li key={anecdote.id}>
+					<Link to={`/anecdotes/${anecdote.id}`}>{anecdote.content}</Link>
+				</li>
 			))}
 		</ul>
 	</div>
@@ -73,7 +85,8 @@ const Footer = () => (
 	</div>
 )
 
-const CreateNew = props => {
+let CreateNew = props => {
+	console.log('createNew props', props)
 	const [content, setContent] = useState('')
 	const [author, setAuthor] = useState('')
 	const [info, setInfo] = useState('')
@@ -86,6 +99,8 @@ const CreateNew = props => {
 			info,
 			votes: 0
 		})
+		props.history.push('/')
+		props.handleNotification(content)
 	}
 
 	return (
@@ -122,6 +137,8 @@ const CreateNew = props => {
 	)
 }
 
+CreateNew = withRouter(CreateNew)
+
 const App = () => {
 	const [anecdotes, setAnecdotes] = useState([
 		{
@@ -140,14 +157,12 @@ const App = () => {
 		}
 	])
 
-	const [notification, setNotification] = useState('')
+	const [notification, setNotification] = useState(null)
 
 	const addNew = anecdote => {
 		anecdote.id = (Math.random() * 10000).toFixed(0)
 		setAnecdotes(anecdotes.concat(anecdote))
 	}
-
-	const anecdoteById = id => anecdotes.find(a => a.id === id)
 
 	const vote = id => {
 		const anecdote = anecdoteById(id)
@@ -160,18 +175,45 @@ const App = () => {
 		setAnecdotes(anecdotes.map(a => (a.id === id ? voted : a)))
 	}
 
+	const anecdoteById = id =>
+		anecdotes.find(anecdote => Number(anecdote.id) === Number(id))
+
+	const handleNotification = content => {
+		setNotification(`New anecdote created: ${content}`)
+		setTimeout(() => setNotification(null), 10000)
+	}
+
 	return (
 		<Router>
 			<div>
 				<h1>Software anecdotes</h1>
 				<Menu />
+				{notification && (
+					<div style={{ color: 'red', border: 'solid' }}>{notification}</div>
+				)}
 				<Route
 					exact
 					path='/'
 					render={() => <AnecdoteList anecdotes={anecdotes} />}
 				/>
-				<Route path='/create' render={() => <CreateNew addnew={addNew} />} />
-				<Route path='/about' render={() => <About />} />
+				<Route
+					exact
+					path='/create'
+					render={() => (
+						<CreateNew
+							addNew={addNew}
+							handleNotification={handleNotification}
+						/>
+					)}
+				/>
+				<Route exact path='/about' render={() => <About />} />
+				<Route
+					path='/anecdotes/:id'
+					exact
+					render={({ match }) => (
+						<Anecdote anecdote={anecdoteById(match.params.id)} />
+					)}
+				/>
 				<Footer />
 			</div>
 		</Router>
